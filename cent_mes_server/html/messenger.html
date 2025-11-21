@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Простой мессенджер</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .app {
+            display: flex;
+            border: 1px solid #ccc;
+            min-height: 400px;
+        }
+
+        /* Левая колонка с чатами */
+        #chat-list {
+            width: 220px;
+            border-right: 1px solid #ccc;
+            background: #f3f3f3;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #chat-list h2 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        #chat-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #chat-list li {
+            margin-bottom: 6px;
+        }
+
+        #chat-list a {
+            display: block;
+            padding: 6px 8px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+        }
+
+        #chat-list a:hover {
+            background: #e0e0e0;
+        }
+
+        #chat-list .active > a {
+            background: #d0e4ff;
+            font-weight: bold;
+        }
+
+        /* Правая часть (сообщения + форма) */
+        .chat-area {
+            flex: 1;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            height: 280px;
+            padding: 10px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            margin-bottom: 15px;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: inline-block;
+            width: 80px;
+        }
+
+        input[type="text"] {
+            width: 70%;
+            padding: 4px;
+        }
+
+        textarea {
+            width: 70%;
+            height: 60px;
+            padding: 4px;
+        }
+
+        button {
+            padding: 6px 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Мессенджер</h1>
+    <a>{{.}}</a>
+    <div class="app">
+        <!-- Левая колонка: список чатов -->
+        <aside id="chat-list">
+            <h2>Чаты</h2>
+        </aside>
+        <script src="../js/chatsUpdate.js"></script>
+
+        <!-- Правая колонка: текущий чат -->
+        <section class="chat-area">
+            <!-- История сообщений текущего чата -->
+            <div id="messages"></div>
+
+            <!-- Форма отправки сообщения в текущий чат -->
+            <form id="msgSendForm">
+                <!-- Скрытое поле с ID текущего чата -->
+                <input type="hidden" id="chatIDField" name="chat_id" value=0>
+                <div class="field">
+                    <label for="login">Логин:</label>
+                    <input type="text" id="login" name="login">
+                </div>
+
+                <div class="field">
+                    <label for="message">Текст:</label>
+                    <textarea id="message" name="message" required></textarea>
+                </div>
+
+                <button type="submit">Отправить</button>
+            </form>
+            <script src="../js/messagesUpdate.js"></script>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+client:														server:
+															open sockets -> creating threads (listeting lists)
+															accept new connections -> add connection to lists via balancer
+[open app] -> connect to server ->->->->->->->->->->->->->->[]
