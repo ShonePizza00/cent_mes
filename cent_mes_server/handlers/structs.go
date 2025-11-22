@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"database/sql"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ShonePizza00/cent_mes/cent_mes_server/models"
 )
 
 type runtimeInstance struct {
@@ -42,7 +44,7 @@ func (ri *runtimeInstance) UsernameFromCookie(
 }
 
 func (ri *runtimeInstance) UserChats(
-	username string) ([]Chat, error) {
+	username string) ([]models.Chat, error) {
 	rows, err := ri.DB.Query(
 		`SELECT 
 		cm.chat_id, 
@@ -109,30 +111,6 @@ func (ri *runtimeInstance) CreateNewChat(
 			VALUES (?,"talk", ?, CURRENT_TIMESTAMP)`,
 		chat_res.ID, chat_res.Title)
 	return chat_res
-	// res := ri.DB.QueryRow(
-	// 	`SELECT t1.chat_id
-	// 		FROM chat_members t1
-	// 		JOIN chat_members t2 ON t1.chat_id=t2.chat_id
-	// 		WHERE t1.user_id=? AND t2.user_id=?`, user1, user2) //must select chat where only two users exist
-	// var chat_q Chat
-	// err := res.Scan(&chat_q.ID)
-	// if err == sql.ErrNoRows {
-	// 	res := ri.DB.QueryRow(`SELECT MAX(chat_id) FROM chat_members`)
-	// 	res.Scan(&chat_q.ID)
-	// 	chat_q.ID++
-	// 	ri.DB.Exec(`INSERT INTO chat_members (chat_id, user_id) VALUES (?,?)`, chat_q.ID, user1)
-	// 	ri.DB.Exec(`INSERT INTO chat_members (chat_id, user_id) VALUES (?,?)`, chat_q.ID, user2)
-	// 	ri.DB.Exec(
-	// 		`INSERT INTO chats
-	// 			(id, type, title, created_at)
-	// 			VALUES (?,"talk", ?, CURRENT_TIMESTAMP)`,
-	// 		chat_q.ID, user2+user1)
-	// }
-	// ri.DB.Exec(
-	// 	`INSERT INTO messages
-	// 			(chat_id, sender_id, created_at, body)
-	// 			VALUES (?,?,CURRENT_TIMESTAMP, ?)`,
-	// 	chat_q.ID, user1, user2)
 }
 
 func (ri *runtimeInstance) SendMessage(
@@ -168,37 +146,4 @@ func (ri *runtimeInstance) FindOrCreateNewChat(
 		chat_res = ri.CreateNewChat(user1, user2)
 	}
 	return &chat_res, nil
-}
-
-type Message struct {
-	ID        int       `json:"id"`
-	ChatID    int       `json:"chat_id"`
-	Sender    string    `json:"sender_id"`
-	CreatedAt time.Time `json:"created_at"`
-	Body      string    `json:"body"`
-}
-
-type MessageCreateRequest struct {
-	ID     int    `json:"id"`
-	ChatID int    `json:"chat_id"`
-	Sender string `json:"sender_id"`
-	Getter string `json:"getter_id"`
-	Body   string `json:"body"`
-}
-
-type User struct {
-	Login    string
-	Password string
-	Token    string
-}
-
-type Chat struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-}
-
-type PageData struct {
-	CurrentChatID int
-	Chats         []Chat
-	Messages      []Message
 }

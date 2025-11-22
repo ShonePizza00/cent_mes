@@ -1,8 +1,7 @@
-package main
+package handlers
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,21 +13,21 @@ import (
 	"time"
 )
 
-func createTables(db *sql.DB) {
-	db.Exec(`CREATE TABLE users_auth(
+func (ri *runtimeInstance) createTables() {
+	ri.DB.Exec(`CREATE TABLE users_auth(
 	login TEXT PRIMARY KEY,
 	passwd TEXT NOT NULL,
 	token TEXT NOT NULL);`)
-	db.Exec(`CREATE TABLE chats(
+	ri.DB.Exec(`CREATE TABLE chats(
 	id INTEGER PRIMARY KEY,
 	type TEXT NOT NULL,
 	title TEXT,
 	CREATED_AT DATETIME NOT NULL);`)
-	db.Exec(`CREATE TABLE chat_members(
+	ri.DB.Exec(`CREATE TABLE chat_members(
 	chat_id INTEGER NOT NULL,
 	user_id TEXT NOT NULL,
 	PRIMARY KEY (chat_id, user_id));`)
-	db.Exec(`CREATE TABLE messages(
+	ri.DB.Exec(`CREATE TABLE messages(
 	id INTEGER PRIMARY KEY,
 	chat_id INTEGER NOT NULL,
 	sender_id TEXT NOT NULL,
@@ -71,7 +70,7 @@ func (ri *runtimeInstance) handlerLogin(w http.ResponseWriter, r *http.Request) 
 	login := r.FormValue("login")
 	paswd_form := r.FormValue("password")
 	paswd_hash := sha256.Sum256([]byte(paswd_form))
-	paswd := string(paswd_hash[:])
+	paswd := hex.EncodeToString(paswd_hash[:])
 	log.Printf("Login attempt. name:\"%s\" passwd:\"%s\"", login, paswd)
 	res := ri.DB.QueryRow("SELECT * FROM users_auth WHERE login=?", login)
 	var user_query User
@@ -107,8 +106,10 @@ func (ri *runtimeInstance) handlerRegister(w http.ResponseWriter, r *http.Reques
 		log.Println("Incorrect user or password")
 		return
 	}
-	token_t := sha256.Sum256([]byte(login))
-	token := hex.EncodeToString(token_t[:])
+	token_encoder := sha256.New()
+	token_encoder.Write([]byte(login))
+	token_encoder.Write(paswd_hash[:])
+	token := hex.EncodeToString(token_encoder.Sum(nil))
 	_, err = ri.DB.Exec(
 		`INSERT INTO users_auth 
 		(login, passwd, token) 
