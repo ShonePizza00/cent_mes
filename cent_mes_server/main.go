@@ -1,6 +1,8 @@
 package main
 
 import (
+	"cent_mes_server/handlers"
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -14,18 +16,15 @@ const (
 )
 
 func main() {
-	// ctx := context.Background()
+
+	ctx, _ := context.WithCancel(context.Background())
 	db, err := sql.Open("sqlite3", "staff/users.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	createTables(db)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
-	ri := &runtimeInstance{DB: db}
+	ri := handlers.RuntimeInstance{DB: db}
+	ri.CreateTables(ctx)
 	srvMx := http.NewServeMux()
 	// log.Println(res.LastInsertId())
 	server := &http.Server{
@@ -34,7 +33,7 @@ func main() {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	addRoutes(srvMx, ri)
+	handlers.AddRoutesRI(srvMx, &ri)
 	log.Println("Server is listening on", addrString)
 	err = server.ListenAndServe()
 	if err != nil {

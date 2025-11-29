@@ -1,16 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/ShonePizza00/cent_mes/cent_mes_server/models"
+	"cent_mes_server/models"
 )
 
-type runtimeInstance struct {
+type RuntimeInstance struct {
 	DB *sql.DB
 }
 
@@ -20,7 +21,70 @@ var (
 	ErrNoUser    = errors.New("no user with token")
 )
 
-func (ri *runtimeInstance) UsernameFromCookie(
+func (ri *RuntimeInstance) CreateTables(ctx context.Context) error {
+	var err error
+	_, err = ri.DB.ExecContext(ctx,
+		`CREATE TABLE IF NOT EXISTS users_auth(
+		login TEXT PRIMARY KEY,
+		passwd TEXT NOT NULL,
+		token TEXT NOT NULL);`)
+	if err != nil {
+		return err
+	}
+	_, err = ri.DB.ExecContext(ctx,
+		`CREATE TABLE IF NOT EXISTS chats(
+		id INTEGER PRIMARY KEY,
+		type TEXT NOT NULL,
+		title TEXT,
+		CREATED_AT DATETIME NOT NULL);`)
+	if err != nil {
+		return err
+	}
+	_, err = ri.DB.ExecContext(ctx,
+		`CREATE TABLE IF NOT EXISTS chat_members(
+		chat_id INTEGER NOT NULL,
+		user_id TEXT NOT NULL,
+		PRIMARY KEY (chat_id, user_id));`)
+	if err != nil {
+		return err
+	}
+	_, err = ri.DB.ExecContext(ctx,
+		`CREATE TABLE IF NOT EXISTS messages(
+		id INTEGER PRIMARY KEY,
+		chat_id INTEGER NOT NULL,
+		sender_id TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		body TEXT NOT NULL);`)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ri *RuntimeInstance) GetUserByLogin(login string) (*models.User, error) {
+	res := ri.DB.QueryRow(`SELECT * FROM users_auth WHERE login=?`, login)
+	var user_query models.User
+	err := res.Scan(&user_query.Login, &user_query.Password, &user_query.Token)
+	if err == sql.ErrNoRows {
+		return nil, ErrNoUser
+	}
+	return &user_query, nil
+}
+
+func (ri *RuntimeInstance) RegisterUser(user models.User) error {
+	res, err := ri.DB.Exec(
+		`INSERT INTO users_auth
+		(login, passwd, token)
+		VALUES (?, ?, ?)`,
+		user.Login, user.Password, user.Token)
+	if err != nil {
+		return err
+	}
+	_, err = res.RowsAffected()
+	return err
+}
+
+func (ri *RuntimeInstance) UsernameFromCookie(
 	w http.ResponseWriter,
 	r *http.Request,
 	cookie_tag string) (string, error) {
@@ -43,7 +107,7 @@ func (ri *runtimeInstance) UsernameFromCookie(
 	return username, nil
 }
 
-func (ri *runtimeInstance) UserChats(
+func (ri *RuntimeInstance) UserChats(
 	username string) ([]models.Chat, error) {
 	rows, err := ri.DB.Query(
 		`SELECT 
@@ -62,9 +126,9 @@ func (ri *runtimeInstance) UserChats(
 		return nil, err
 	}
 	defer rows.Close()
-	var chats_slice []Chat = make([]Chat, 0, 10)
+	var chats_slice []models.Chat = make([]models.Chat, 0, 10)
 	for rows.Next() {
-		var chat_t Chat
+		var chat_t models.Chat
 		var time_t time.Time
 		rows.Scan(&chat_t.ID, &chat_t.Title, &time_t)
 		temp := strings.Split(chat_t.Title, "|")
@@ -78,27 +142,31 @@ func (ri *runtimeInstance) UserChats(
 	return chats_slice, nil
 }
 
-func (ri *runtimeInstance) MessagesInChat(
+func (ri *RuntimeInstance) MessagesInChat(
 	chat_id int,
-	after_id int) ([]Message, error) {
-	rows, err := ri.DB.Query(`SELECT * FROM messages WHERE chat_id=? AND id>?`, chat_id, after_id)
+	after_id int) ([]models.Message, error) {
+	rows, err := ri.DB.Query(
+		`SELECT * FROM messages 
+		WHERE chat_id=? AND id>?
+		ORDER BY created at`,
+		chat_id, after_id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	mess := make([]Message, 0, 32)
+	mess := make([]models.Message, 0, 32)
 	for rows.Next() {
-		var m Message
+		var m models.Message
 		rows.Scan(&m.ID, &m.ChatID, &m.Sender, &m.CreatedAt, &m.Body)
 		mess = append(mess, m)
 	}
 	return mess, nil
 }
 
-func (ri *runtimeInstance) CreateNewChat(
+func (ri *RuntimeInstance) CreateNewChat(
 	user1 string,
-	user2 string) Chat {
-	var chat_res Chat
+	user2 string) models.Chat {
+	var chat_res models.Chat
 	row := ri.DB.QueryRow(`SELECT MAX(chat_id) FROM chat_members`)
 	row.Scan(&chat_res.ID)
 	chat_res.ID++
@@ -113,8 +181,8 @@ func (ri *runtimeInstance) CreateNewChat(
 	return chat_res
 }
 
-func (ri *runtimeInstance) SendMessage(
-	msg *MessageCreateRequest) error {
+func (ri *RuntimeInstance) SendMessage(
+	msg *models.MessageCreateRequest) error {
 	_, err := ri.DB.Exec(
 		`INSERT INTO messages
 				(chat_id, sender_id, created_at, body)
@@ -125,9 +193,9 @@ func (ri *runtimeInstance) SendMessage(
 	return err
 }
 
-func (ri *runtimeInstance) FindOrCreateNewChat(
+func (ri *RuntimeInstance) FindOrCreateNewChat(
 	user1 string,
-	user2 string) (*Chat, error) {
+	user2 string) (*models.Chat, error) {
 	{
 		res := ri.DB.QueryRow(`SELECT login FROM users_auth WHERE login=?`, user2)
 		var t string
@@ -140,7 +208,7 @@ func (ri *runtimeInstance) FindOrCreateNewChat(
 	FROM chat_members t1
 	JOIN chat_members t2 ON t1.chat_id=t2.chat_id
 	WHERE t1.user_id=? AND t2.user_id=?`, user1, user2) //=>must select chat where only two users exist
-	var chat_res Chat
+	var chat_res models.Chat
 	err := res.Scan(&chat_res.ID)
 	if err == sql.ErrNoRows {
 		chat_res = ri.CreateNewChat(user1, user2)
