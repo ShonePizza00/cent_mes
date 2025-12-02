@@ -7,7 +7,17 @@ async function loadInitMes() {
         return;
     }
     lastMesID = -1;
-    const res = await fetch('/api/mes?chat_id=' + encodeURIComponent(chatID));
+    const res = await fetch('/api/messages?chat_id=' + encodeURIComponent(chatID));
+    // const res = await fetch('/api/messages', {
+    //     method: 'GET',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //         chatID: Number(chatID),
+    //         afterID: 0,
+    //     }),
+    // });
     const msgs = await res.json();
     msgs.forEach(m => {
         appendMessage(m);
@@ -29,10 +39,19 @@ async function pollNewMessages() {
     const chatId = document.getElementById('chatIDField').value;
     if (chatId == 0) return;
     try {
-        const res = await fetch('/api/mes?chat_id=' + encodeURIComponent(chatId) +
+        const res = await fetch('/api/messages?chat_id=' + encodeURIComponent(chatId) +
                                 '&after_id=' + encodeURIComponent(lastMesID));
+        // const res = await fetch('/api/messages', {
+        //     method: 'GET',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify({
+        //         chatID: Number(chatId),
+        //         afterID: Number(lastMesID),
+        //     }),
+        // });
         const msgs = await res.json();
-
         if (Array.isArray(msgs) && msgs.length > 0) {
             msgs.forEach(m => {
                 appendMessage(m);
@@ -62,7 +81,7 @@ if (messageForm) {
         document.getElementById('message').value = '';
         document.getElementById('login').value = '';
         try {
-            const res = await fetch('/api/mes', {
+            const res = await fetch('/api/messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

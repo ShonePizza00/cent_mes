@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+/* NEW ROUTES
+/auth - auth, register, token update and validate
+/mes - messenger from
+/api - api methods
+*/
+
 func AddRoutesRI(
 	srvMx *http.ServeMux,
 	ri *RuntimeInstance) {
@@ -107,6 +113,21 @@ func (ri *RuntimeInstance) handlerRegister(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, "/auth", http.StatusSeeOther)
 }
 
+func (ri *RuntimeInstance) APIhandlerGetChats(w http.ResponseWriter, r *http.Request) {
+	username, err := ri.UsernameFromCookie(w, r, "user")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	chats, err := ri.UserChats(username)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(chats)
+}
+
 func (ri *RuntimeInstance) handlerReturnFormMessages(w http.ResponseWriter, r *http.Request) {
 	username, err_c := ri.UsernameFromCookie(w, r, "user")
 	if err_c != nil {
@@ -141,21 +162,6 @@ func (ri *RuntimeInstance) APIhandlerGetMessages(w http.ResponseWriter, r *http.
 		http.Error(w, "No chat_id", http.StatusBadRequest)
 		return
 	}
-}
-
-func (ri *RuntimeInstance) APIhandlerGetChats(w http.ResponseWriter, r *http.Request) {
-	username, err := ri.UsernameFromCookie(w, r, "user")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	chats, err := ri.UserChats(username)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	json.NewEncoder(w).Encode(chats)
 }
 
 func (ri *RuntimeInstance) APIhandlerSendMessage(w http.ResponseWriter, r *http.Request) {

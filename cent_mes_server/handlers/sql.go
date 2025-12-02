@@ -148,7 +148,7 @@ func (ri *RuntimeInstance) MessagesInChat(
 	rows, err := ri.DB.Query(
 		`SELECT * FROM messages 
 		WHERE chat_id=? AND id>?
-		ORDER BY created at`,
+		ORDER BY created_at`,
 		chat_id, after_id)
 	if err != nil {
 		return nil, err
